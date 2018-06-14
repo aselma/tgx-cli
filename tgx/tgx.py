@@ -57,7 +57,7 @@ def create_organization(owner, code):
                     admin{
                         createOrganization(organization:{
                         user:"USER_TEMPLATE"
-                        code:"CODE_TEMPLATE"
+                        organization:"CODE_TEMPLATE"
                         template:ORGANIZATION_DEFAULT
                         }){
                         error{
@@ -157,9 +157,9 @@ def update_group(api, code):
                         updateGroup(
                             group:{
                                 api:"API_TEMPLATE"
-                                code:"CODE_TEMPLATE"
-                                method:ADD
+                                group:"CODE_TEMPLATE"                                
                                 }
+                            method:ADD
                                 )
                                 {
                                     error{
@@ -193,8 +193,8 @@ def create_member(code):
                             createMember(member:{
                             type:SERVICE_ACCOUNT
                             group:"CODE_TEMPLATE"
-                            roles:"viewer"
-                            resource:"grp"
+                            role:"viewer"
+                            resources:["grp","mbr","prd","api","opt","rsc","rol","acc","cli","sup"]
                             }){
                             error{
                                 code
@@ -212,8 +212,8 @@ def create_member(code):
                             createMember(member:{
                             type:SERVICE_ACCOUNT
                             group:"CODE_TEMPLATE"
-                            roles:"owner"
-                            resource:"grp"
+                            role:"executor"
+                            resources:["grp"]
                             }){
                                 code
                             error{
@@ -274,10 +274,10 @@ def update_member(code, group, role_resource_tuple):
     mutation = """mutation{
                     admin{
                         updateMember(member:{
-                        code:"CODE_TEMPLATE"
+                        member:"CODE_TEMPLATE"
                         group:"GROUP_TEMPLATE"
-                        roles:"ROLE_TEMPLATE"
-                        resource:"RESOURCE_TEMPLATE"
+                        role:"ROLE_TEMPLATE"
+                        resources:"RESOURCE_TEMPLATE"
                         method:ADD
                         }){
                             code
@@ -290,7 +290,7 @@ def update_member(code, group, role_resource_tuple):
                     }
                 }""".replace('CODE_TEMPLATE', code).replace('GROUP_TEMPLATE', group)
     mutation = mutation.replace('ROLE_TEMPLATE', role_resource_tuple[0])
-    mutation = mutation.replace('RESOURCE_TEMPLATE', role_resource_tuple[1])
+    mutation = mutation.replace('RESOURCE_TEMPLATE', str(role_resource_tuple[1]).replace("'", '"')).replace('"[','[').replace(']"',']')
     result = client.execute(mutation)
     print('\n-------------------------------------------------------\n')
     print("5th step) Updating Member ...")
@@ -298,7 +298,7 @@ def update_member(code, group, role_resource_tuple):
     # print("code: "+code)
     print("\ngroup: " + group)
     print("role: " + role_resource_tuple[0])
-    print("resource: " + role_resource_tuple[1])
+    print("resource: " + str(role_resource_tuple[1]))
     print("ApiKey: " + result['data']['admin']['updateMember']['code'])
     print('\n-------------------------------------------------------')
     try:
@@ -312,25 +312,8 @@ def update_member(code, group, role_resource_tuple):
     return response
 
 
-role_resource_list_prod = [('viewer', 'mbr'),
-                           ('viewer', 'prd'),
-                           ('viewer', 'api'),
-                           ('viewer', 'rsc'),
-                           ('viewer', 'rol'),
-                           ('viewer', 'acc'),
-                           ('viewer', 'sup'),
-                           ('viewer', 'cli'),
-                           ('exec', 'src'),
-                           ('exec', 'qte'),
-                           ('exec', 'boo'),
-                           ('exec', 'bok'),
-                           ('exec', 'cnl'),
-                           ('exec', 'brd'),
-                           ('exec', 'cat'),
-                           ('exec', 'rom'),
-                           ('exec', 'hot')]
-
-role_resource_list_dev = [('owner', 'mbr')]
+role_resource_list_prod = ('executor', ['src', 'qte', 'boo', 'bok', 'cnl', 'brd', 'cat', 'rom', 'hot'])
+role_resource_list_dev = ('viewer', ['mbr'])
 
 
 def init_create_all(init_owner, init_code):
@@ -362,6 +345,8 @@ def init_create_organization(init_owner, init_code):
         print("\n" + code2)
         return -1
     for api in ["entity", "hubgra", "hotlst"]:
+        update_group(api, init_code)
+    for api in ["entity", "hubgra", "hotlst"]:
         update_group(api, code2)
     return code2
 
@@ -378,8 +363,6 @@ def init_create_apikey(group_code):
         return -1
 
     if MODE == 'PROD':
-        for role_resource in role_resource_list_prod:
-            update_member(code4, group_code, role_resource)
+        update_member(code4, group_code, role_resource_list_prod)
     else:  # MODE == TEST
-        for role_resource in role_resource_list_dev:
-            return update_member(code4, group_code, role_resource)
+        return update_member(code4, group_code, role_resource_list_dev)
