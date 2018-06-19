@@ -196,6 +196,7 @@ def create_member(code):
                             role:"viewer"
                             resources:["grp","mbr","prd","api","opt","rsc","rol","acc","cli","sup"]
                             }){
+                                code
                             error{
                                 code
                                 type
